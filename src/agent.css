@@ -1,0 +1,1087 @@
+/* AI conversation is the primary workspace; results remain beside it. */
+.agent-app .main-sheet>.page-heading {align-items:flex-start;margin-bottom:24px}
+.agent-app .main-sheet>.page-heading p {margin-top:8px}
+.record-row-actions {width:132px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 8px}
+.history-page .records-column-heading {padding-right:148px}
+.record-row-actions .record-delete-button {margin:0}
+.record-row-actions .confirm-row-delete {background:var(--error);color:var(--surface);border-radius:6px;min-height:36px;padding:6px 10px;font-size:12px;white-space:nowrap}
+.record-row-actions .cancel-row-delete {min-height:36px;font-size:12px;padding:6px 0;color:var(--muted);white-space:nowrap}
+.agent-app .sidebar .composer .compose-tools .composer-model-status {color:var(--accent);margin-left:auto}
+.agent-app .sidebar .compose-tools>.stop-agent {margin-left:0;flex-shrink:0}
+.records-page-item {display:flex;align-items:center;border-bottom:1px solid var(--line)}
+.records-page-item .records-page-row {flex:1;min-width:0;border-bottom:0}
+.record-delete-button {color:var(--muted);display:flex;align-items:center;justify-content:center;width:36px;height:36px;margin:0 8px;flex-shrink:0;border-radius:6px}
+.record-delete-button:hover {color:var(--error);background:var(--error-bg)}
+.record-delete-confirm,.record-deleted-notice {display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;margin:12px 0;border:1px solid var(--line);border-radius:8px;font-size:13px}
+.record-delete-confirm>span,.record-deleted-notice>span {flex:1;min-width:140px}
+.record-delete-confirm button,.record-deleted-notice button {padding:6px 10px;border-radius:6px;color:var(--accent)}
+.record-delete-confirm .confirm-delete {background:var(--error);color:var(--surface)}
+.history-page {max-width:1120px;margin:24px auto 48px;padding:36px;background:var(--surface);border:1px solid var(--line);border-radius:20px;min-height:calc(100dvh - 150px)}
+.records-page-heading {margin-bottom:28px}
+.records-page-heading h1 {font-size:26px;margin-bottom:8px}
+.records-page-heading p {font-size:13px;color:var(--muted)}
+.records-column-heading,.records-page-row {display:grid;grid-template-columns:minmax(0,1fr) 180px 140px 20px;align-items:center;gap:20px}
+.records-column-heading {padding:12px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
+.records-page-row {width:100%;padding:22px 16px;text-align:left;border-bottom:1px solid var(--line);min-height:80px}
+.records-page-row:hover {background:var(--raised)}
+.records-page-title {display:flex;align-items:center;gap:12px;min-width:0}
+.records-page-title svg,.records-page-row>svg {color:var(--accent)}
+.records-page-title strong {font-size:14px;font-weight:500;overflow-wrap:anywhere}
+.records-page-row time,.records-page-size {font-size:12px;color:var(--muted)}
+.records-page-empty {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:300px;color:var(--muted);font-size:14px}
+@media(max-width:1160px){.history-page {margin-left:16px;margin-right:16px}}
+@media(max-width:760px){.history-page {margin:12px 8px;padding:24px 16px;border-radius:16px}.records-column-heading {display:none}.records-page-row {grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:18px 0}.records-page-title {grid-column:1;grid-row:1}.records-page-row>svg {grid-column:2;grid-row:1}.records-page-row time {grid-column:1;grid-row:2;padding-left:31px}.records-page-size {grid-column:1;grid-row:3;padding-left:31px}.records-app .topbar {padding:0 12px;gap:8px}.records-app .topnav {min-width:0;flex:1;overflow-x:auto;scrollbar-width:none;gap:10px}.records-app .topnav>button {white-space:nowrap;flex-shrink:0;font-size:11px}}
+.topnav>.history-nav-button {white-space:nowrap;flex-shrink:0}
+@media(max-width:760px){.agent-app .topbar {padding-left:12px;padding-right:12px;gap:8px}.agent-app .topnav {min-width:0;flex:1;overflow-x:auto;scrollbar-width:none}.agent-app .topnav>button {white-space:nowrap;flex-shrink:0;font-size:11px}}
+.history-panel {
+  position: fixed;
+  inset: 64px auto auto clamp(16px, 34vw, 600px);
+  margin: 0;
+  width: 380px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100dvh - 88px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 18px;
+  overflow: hidden;
+  font-size: 14px;
+}
+.history-panel:popover-open {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.history-panel::backdrop {
+  background: var(--transparent);
+}
+.history-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.history-panel-heading h2 {
+  font-size: 16px;
+}
+.history-panel-heading span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.history-current {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--accent);
+}
+.history-current > div {
+  min-width: 0;
+}
+.history-current strong,
+.history-current span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-current strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.history-current span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.history-records {
+  overflow: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.topnav .history-records > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 10px;
+  border-radius: 8px;
+  min-height: 62px;
+  flex-shrink: 0;
+  width: 100%;
+  font-size: 13px;
+}
+.history-records > button > span {
+  min-width: 0;
+  flex: 1;
+}
+.history-records strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.history-records small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.history-records > button:hover,
+.history-records > button.selected {
+  background: var(--accent-soft);
+}
+.history-records svg {
+  color: var(--accent);
+}
+.history-empty {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 18px 0;
+}
+.topnav:has(.history-panel:popover-open) > .history-nav-button {
+  color: var(--accent);
+}
+@media (max-width: 760px) {
+  .history-panel {
+    inset: 60px 12px auto 12px;
+    width: auto;
+    max-width: none;
+  }
+  .agent-app .topnav {
+    gap: 10px;
+  }
+  .agent-app .topbar {
+    gap: 10px;
+  }
+}
+@media (max-width: 360px) {
+  .agent-app .topbar {
+    padding-left: 10px;
+    padding-right: 10px;
+    gap: 7px;
+  }
+  .agent-app .topnav {
+    gap: 7px;
+  }
+  .agent-app .topnav > button {
+    font-size: 11px;
+  }
+}
+.auth-loading {
+  min-height: 70dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.agent-app .workspace {
+  border: 0;
+  margin: 0;
+  min-inline-size: 0;
+  grid-template-columns: minmax(380px, 0.88fr) minmax(0, 1.12fr);
+  gap: 20px;
+  padding-right: 16px;
+}
+.agent-app .workspace.sidebar-closed {
+  grid-template-columns: minmax(0, 1fr);
+}
+.agent-app .workspace.sidebar-closed .sidebar {
+  display: none;
+}
+.agent-app .sidebar {
+  padding: 20px 12px 12px 24px;
+  gap: 12px;
+  min-height: 680px;
+  height: calc(100dvh - 88px);
+}
+.agent-app .side-title {
+  margin: 0;
+}
+.agent-app .side-title h2 {
+  font-size: 19px;
+  letter-spacing: -0.3px;
+  color: var(--accent);
+}
+.agent-app .new-analysis {
+  min-height: 38px;
+  margin: 0;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-color: var(--line);
+}
+.analysis-history {
+  flex-shrink: 0;
+  min-width: 0;
+}
+.history-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.history-heading h2 {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.history-heading > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.analysis-history > p {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 4px 0;
+}
+.history-list {
+  max-height: 132px;
+  overflow: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.history-list button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border-radius: 6px;
+  padding: 8px 10px;
+  min-height: 52px;
+  flex-shrink: 0;
+}
+.history-list button:hover,
+.history-list button.selected {
+  background: var(--accent-soft);
+}
+.history-list button > span {
+  min-width: 0;
+  flex: 1;
+}
+.history-list strong {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 500;
+}
+.history-list small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.history-list svg {
+  color: var(--accent);
+}
+.agent-app .source-block {
+  margin: 0;
+  padding: 4px 0 12px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.agent-app .small-heading {
+  display: none;
+}
+.agent-app .source-file {
+  padding: 0;
+  margin: 0;
+  gap: 10px;
+}
+.agent-app .source-file strong {
+  font-size: 12px;
+}
+.agent-app .source-file span {
+  font-size: 11px;
+}
+.agent-app .source-file svg {
+  width: 18px;
+}
+.agent-app .conversation {
+  min-height: 120px;
+  padding: 8px 4px 0 0;
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.agent-app .message {
+  margin-bottom: 20px;
+}
+.agent-app .message p {
+  font-size: 14px;
+  line-height: 1.9;
+}
+.agent-app .message.user {
+  margin-left: 28px;
+  padding: 12px 16px;
+  background: #e4ece4;
+}
+.agent-app .assistant-label {
+  font-size: 12px;
+}
+.agent-app .suggestions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+.agent-app .composer {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  padding: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.composer-agent-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--accent);
+  color: var(--surface);
+}
+.composer-agent-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.composer-agent-heading strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.composer-agent-heading small {
+  font-size: 11px;
+  color: #dfebe1;
+}
+.agent-app .composer textarea {
+  min-height: 94px;
+  max-height: 180px;
+  padding: 14px 16px;
+  resize: vertical;
+}
+.agent-app .compose-tools {
+  padding: 0 12px 8px;
+}
+.agent-app .ai-status {
+  margin: 0;
+  padding: 6px 16px;
+  border-top: 1px solid var(--line);
+  min-height: 32px;
+  font-size: 11px;
+}
+.record-save-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 16px 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.record-save-status button {
+  font-size: 11px;
+  padding: 4px 0;
+  min-height: 28px;
+  color: var(--accent);
+  text-decoration: underline;
+}
+.save-error {
+  font-size: 11px;
+  color: var(--error);
+  padding: 0 16px 10px;
+}
+.agent-app .privacy-note {
+  margin: 0;
+  font-size: 11px;
+}
+.agent-app .main-sheet {
+  padding: 28px 24px 0;
+}
+.agent-app .analysis-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+.agent-app .insight-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.agent-app .insight-panel h2 {
+  grid-column: 1/-1;
+}
+.agent-app .method-tag {
+  display: none;
+}
+.agent-app .finding {
+  margin: 0;
+}
+.agent-app .quality {
+  margin: 0;
+  padding-top: 12px;
+}
+.agent-app .boundary {
+  margin: 0;
+}
+.agent-app .empty-state {
+  min-height: 380px;
+}
+.agent-app .page-heading h1 {
+  font-size: 24px;
+}
+.agent-app .chart-box {
+  height: 250px;
+}
+@media (min-width: 1700px) {
+  .agent-app .workspace {
+    grid-template-columns: minmax(440px, 0.8fr) minmax(0, 1.2fr);
+  }
+  .agent-app .analysis-body {
+    grid-template-columns: minmax(0, 1fr) 230px;
+  }
+  .agent-app .insight-panel {
+    display: flex;
+  }
+  .agent-app .finding {
+    margin-top: 20px;
+  }
+  .agent-app .quality {
+    margin-top: 20px;
+  }
+  .agent-app .boundary {
+    margin-top: 16px;
+  }
+}
+@media (max-width: 1100px) {
+  .agent-app .workspace {
+    grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+    gap: 12px;
+  }
+  .agent-app .sidebar {
+    padding-left: 16px;
+    padding-right: 4px;
+  }
+  .agent-app .main-sheet {
+    padding: 24px 16px 0;
+  }
+  .agent-app .tabs {
+    gap: 16px;
+  }
+  .agent-app .tabs button {
+    font-size: 12px;
+  }
+  .composer-agent-heading {
+    padding: 10px 12px;
+  }
+  .composer-agent-heading small {
+    font-size: 10px;
+  }
+  .agent-app .chart-toolbar {
+    flex-wrap: wrap;
+  }
+  .agent-app .insight-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .agent-app .insight-panel h2 {
+    grid-column: auto;
+  }
+}
+@media (max-width: 850px) {
+  .agent-app .workspace {
+    display: flex;
+    flex-direction: column;
+    padding: 0 8px 8px;
+    gap: 12px;
+  }
+  .agent-app .sidebar {
+    position: static;
+    display: flex;
+    min-height: 0;
+    height: 640px;
+    max-height: none;
+    padding: 16px 12px 0;
+    gap: 10px;
+  }
+  .agent-app .source-block {
+    display: none;
+  }
+  .agent-app .side-title .icon-button {
+    display: flex;
+  }
+  .agent-app .side-title h2 {
+    font-size: 18px;
+  }
+  .agent-app .new-analysis {
+    width: 100%;
+  }
+  .agent-app .history-list {
+    max-height: 104px;
+  }
+  .agent-app .analysis-history {
+    display: block;
+  }
+  .agent-app .conversation {
+    min-height: 110px;
+    max-height: none;
+  }
+  .agent-app .message:first-child {
+    display: block;
+  }
+  .agent-app .suggestions {
+    display: flex;
+  }
+  .agent-app .composer {
+    width: 100%;
+  }
+  .agent-app .composer textarea {
+    min-height: 72px;
+  }
+  .agent-app .main-sheet {
+    min-height: 500px;
+  }
+  .agent-app .privacy-note {
+    font-size: 10px;
+  }
+  .agent-app .empty-state {
+    min-height: 300px;
+  }
+  .agent-app .insight-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+  .agent-app .insight-panel h2 {
+    grid-column: 1/-1;
+  }
+}
+
+/* Compact composer: one toolbar under the input, conversation takes the rest. */
+.agent-app .sidebar .agent-thread {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  padding: 12px;
+  gap: 0;
+}
+.agent-app .sidebar .composer-agent-heading {
+  background: var(--transparent);
+  color: var(--ink);
+  padding: 4px 4px 10px;
+  min-height: 32px;
+}
+.agent-app .sidebar .composer-agent-heading strong {
+  font-size: 14px;
+}
+.agent-app .sidebar .composer-agent-heading svg {
+  width: 17px;
+  color: var(--accent);
+}
+.agent-app .sidebar .conversation {
+  padding: 16px 4px 12px;
+  min-height: 0;
+  flex: 1;
+}
+.agent-app .sidebar .suggestions {
+  display: none;
+}
+.agent-app .sidebar .composer {
+  flex: 0 0 auto;
+  border: 1px solid var(--control);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 22px;
+  padding: 0;
+  background: var(--surface);
+  overflow: hidden;
+}
+.agent-app .sidebar .composer textarea:focus-visible {
+  outline: none;
+}
+.agent-app .sidebar .composer textarea {
+  display: block;
+  border: 0;
+  background: var(--transparent);
+  padding: 14px 16px 6px;
+  min-height: 58px;
+  height: 64px;
+  max-height: 64px;
+  outline-offset: -3px;
+}
+.agent-app .sidebar .compose-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 8px;
+  min-height: 44px;
+  border: 0;
+}
+.agent-app .sidebar .compose-tools > .icon-button {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  color: var(--ink);
+}
+.composer-shortcut {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.agent-app .sidebar .compose-tools .composer-model-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+  min-height: 32px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.agent-app .sidebar .composer-model-status.success {
+  color: var(--accent);
+}
+.agent-app .sidebar .composer-model-status.failed {
+  color: var(--error);
+}
+.agent-app .sidebar .composer-model-status button {
+  font-size: 11px;
+  padding: 0 2px;
+  text-decoration: underline;
+}
+.agent-app .sidebar .send-button,
+.agent-app .sidebar .voice-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--surface);
+}
+.agent-app .sidebar .voice-button:hover,
+.agent-app .sidebar .send-button:hover {
+  background: var(--accent-hover);
+}
+.agent-app .sidebar .voice-button.recording {
+  background: var(--error);
+}
+.agent-app .sidebar .record-save-status {
+  padding: 0 14px 5px;
+  min-height: 22px;
+  font-size: 10px;
+}
+.agent-app .sidebar .record-save-status button {
+  font-size: 10px;
+  min-height: 22px;
+  padding: 0;
+}
+.agent-app .sidebar .privacy-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.voice-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 14px 6px;
+  color: var(--accent);
+  font-size: 11px;
+}
+.voice-feedback button {
+  text-decoration: underline;
+  padding: 2px 0;
+  flex-shrink: 0;
+}
+.voice-error {
+  padding: 0 14px 8px;
+  color: var(--error);
+  font-size: 11px;
+  line-height: 1.6;
+}
+@media (max-width: 850px) {
+  .agent-app .sidebar .composer textarea {
+    min-height: 46px;
+    height: 46px;
+    max-height: 46px;
+    padding-top: 10px;
+  }
+  .agent-app .sidebar .composer-agent-heading {
+    min-height: 24px;
+    padding-bottom: 5px;
+  }
+  .agent-app .sidebar .privacy-note {
+    font-size: 9px;
+    margin-top: 3px;
+  }
+  .agent-app .sidebar .compose-tools {
+    gap: 7px;
+    padding: 2px 8px 5px;
+  }
+  .agent-app .sidebar .compose-tools .composer-model-status,
+  .composer-shortcut {
+    font-size: 11px;
+  }
+}
+@media (max-width: 420px) {
+  .composer-agent-heading strong {
+    font-size: 13px;
+  }
+  .composer-agent-heading small {
+    font-size: 10px;
+  }
+  .agent-app .sidebar {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .agent-app .composer textarea {
+    min-height: 78px;
+  }
+  .agent-app .main-sheet {
+    padding: 20px 12px 0;
+  }
+  .agent-app .insight-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .agent-app .insight-panel h2 {
+    grid-column: auto;
+  }
+  .agent-app .side-title h2 {
+    font-size: 17px;
+  }
+}
+
+/* The thread owns its scroll; the workbench shell and composer stay in place. */
+.agent-app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.agent-app .topbar {
+  flex-shrink: 0;
+}
+.agent-app .workspace {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  align-items: stretch;
+}
+.agent-app .sidebar {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  gap: 10px;
+}
+.agent-app .main-sheet {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.agent-app .source-block {
+  padding-bottom: 8px;
+}
+.agent-app .history-heading {
+  margin-bottom: 0;
+}
+.history-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 4px 0;
+  min-height: 28px;
+}
+.history-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.agent-thread {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.agent-thread .composer-agent-heading {
+  flex-shrink: 0;
+  padding: 12px 16px;
+}
+.agent-app .sidebar .composer-agent-heading .assistant-model-name {
+  display: inline;
+  color: var(--accent);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 400;
+}
+.agent-app .conversation {
+  min-height: 0;
+  max-height: none;
+  padding: 18px 16px;
+  flex: 1;
+  overscroll-behavior: contain;
+  overflow: auto;
+}
+.agent-app .message {
+  margin-bottom: 20px;
+  overflow: visible;
+  max-height: none;
+}
+.agent-app .message p {
+  white-space: pre-wrap;
+  overflow: visible;
+  max-height: none;
+  overflow-wrap: anywhere;
+}
+.agent-app .message.user {
+  margin-left: 16px;
+  border-radius: 8px;
+}
+.agent-app .suggestions {
+  padding: 0 12px 8px;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.agent-app .suggestions button {
+  font-size: 11px;
+  min-height: 28px;
+  padding: 4px 8px;
+}
+.agent-app .composer {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface);
+  width: 100%;
+}
+.agent-app .composer textarea {
+  min-height: 68px;
+  height: 76px;
+  max-height: 130px;
+  resize: none;
+  padding: 12px 16px;
+}
+.agent-app .ai-status {
+  min-height: 25px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  border-top: 0;
+}
+.agent-app .record-save-status {
+  padding-bottom: 6px;
+}
+.agent-app .privacy-note {
+  font-size: 10px;
+}
+.tool-trace {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.tool-trace summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+.message-markdown p + p,
+.message-markdown ul,
+.message-markdown ol {
+  margin-top: 10px;
+}
+.message-markdown strong {
+  font-weight: 600;
+}
+.tool-trace ol,
+.live-tool-steps {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tool-trace li > span,
+.live-tool-steps li > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.tool-trace small,
+.live-tool-steps small {
+  display: block;
+  padding-left: 19px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.tool-trace .error {
+  color: var(--error);
+}
+.stop-agent {
+  margin-left: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.agent-app .chart-toolbar {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.agent-app .chart-toolbar select {
+  max-width: 180px;
+  font-size: 12px;
+}
+.view-description {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 0 0 16px;
+}
+.active-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.active-filters > span {
+  padding: 3px 8px;
+  background: var(--raised);
+  border-radius: 4px;
+}
+.active-filters button {
+  text-decoration: underline;
+  color: var(--accent);
+}
+.chart-result-table summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.table-pagination > span:first-child {
+  margin-right: auto;
+}
+.table-pagination button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+.agent-app .table-wrap {
+  overflow: auto;
+  max-width: 100%;
+}
+.agent-app .table-wrap th,
+.agent-app .table-wrap td {
+  white-space: nowrap;
+}
+.agent-app .pie-legend {
+  max-height: 160px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+@media (max-width: 850px) {
+  .agent-app .workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 58%) minmax(0, 42%);
+    gap: 8px;
+    padding-bottom: 0;
+  }
+  .agent-app .workspace.sidebar-closed {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .agent-app .sidebar {
+    height: 100%;
+    min-height: 0;
+    padding-top: 6px;
+    padding-bottom: 0;
+    gap: 6px;
+  }
+  .agent-app .side-title h2 {
+    font-size: 16px;
+  }
+  .agent-app .new-analysis {
+    min-height: 30px;
+  }
+  .agent-app .main-sheet {
+    min-height: 0;
+    padding-top: 16px;
+  }
+  .agent-app .source-block,
+  .agent-app .privacy-note {
+    display: none;
+  }
+  .agent-thread .composer-agent-heading {
+    padding: 8px 12px;
+  }
+  .agent-app .conversation {
+    padding: 12px;
+    min-height: 0;
+  }
+  .agent-app .message p {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .agent-app .composer textarea {
+    min-height: 48px;
+    height: 48px;
+    padding: 8px 12px;
+  }
+  .agent-app .compose-tools {
+    padding-bottom: 4px;
+  }
+  .agent-app .ai-status {
+    display: none;
+  }
+  .agent-app .record-save-status {
+    padding: 0 12px 3px;
+  }
+  .agent-app .suggestions {
+    display: none;
+  }
+  .agent-app .history-list {
+    max-height: 76px;
+  }
+}

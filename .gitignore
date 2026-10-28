@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.env
+.env.*
+# Competition configuration intentionally included at the owner's request.
+!.env
+!.env.example
+.data/
+*.log
+tmp/
+output/
+.hallmark/
+.taste-skill/
+.DS_Store
+Thumbs.db
+coverage/
+# Local design notes, screenshots and test-account verification records.
+docs/*
+!docs/architecture.md
+!docs/configuration.md
+!docs/development-history.md
+!docs/open-source-references.md
