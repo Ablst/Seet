@@ -39,7 +39,7 @@ npm start
 ## 运行检查
 
 - `/api/status` 返回服务是否配置 AI 及模型名称，不返回密钥。
-- `npm test` 使用临时数据目录与模拟供应商，不依赖现有 `.data`。
+- `npm test` 先自动构建前端，再使用临时数据目录与模拟供应商执行测试，不依赖现有 `.data`。
 - `npm run build` 生成 `dist/`，Express 从该目录提供页面。
 - `npm run dev` 只启动前端开发服务，后端仍需另开终端运行。
 
