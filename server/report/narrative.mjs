@@ -51,6 +51,15 @@ export function unsupportedNumbers(snapshot, text) {
     if (chart.coverage?.end) labels.add(chart.coverage.end);
   }
   for (const label of labels) {
+    const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(label);
+    if (date) {
+      // Match complete observed dates; never allow their day number as a statistic.
+      for (const month of [date[2], String(Number(date[2]))])
+        for (const day of [date[3], String(Number(date[3]))]) {
+          labels.add(`${date[1]}年${month}月${day}日`);
+          labels.add(`${month}月${day}日`);
+        }
+    }
     const year = /^(\d{4})-\d{2}(?:-\d{2})?$/.exec(label);
     if (year) allowed.add(year[1]);
     const month = /^\d{4}-(\d{2})(?:-\d{2})?$/.exec(label);
@@ -82,7 +91,8 @@ export function reportFailureMessage(code) {
     rate_limit: "MiMo 请求过于频繁，请稍后重试。",
     authentication: "MiMo 密钥认证失败，请检查服务配置。",
     truncated: "MiMo 报告响应不完整，本次未生成成功，请重试。",
-    evidence: "AI 报告未通过数据与图表一致性校验，为避免输出错误结论，已停止生成。请重试。",
+    evidence: "模型报告中仍有无法与统计证据对应的内容，修订后未通过校验。本次未生成报告，原始数据未更改，请重试。",
+    interrupted: "模型响应连接中断，报告未接收完整，请重试。",
     format: "MiMo 返回的报告格式不完整，请重试生成。",
     provider: "MiMo 报告服务暂时不可用，请稍后重试。",
   }[code] || "MiMo 深度分析报告暂未完成，请重试，或主动选择生成统计报告。";
@@ -108,22 +118,24 @@ export function fallbackNarrative(s, notice = "本报告的解读由程序根据
   };
 }
 
-async function readCompletion(response, onProgress) {
+export async function readCompletion(response, onProgress) {
   if (!response.headers.get("content-type")?.includes("text/event-stream")) {
     const body = await response.json();
     if (body.choices?.[0]?.finish_reason === "length") throw new Error("truncated");
     return body.choices?.[0]?.message?.content || "";
   }
   const reader = response.body.getReader(), decoder = new TextDecoder();
-  let pending = "", content = "", seenThinking = false, seenAnswer = false, finish;
+  let pending = "", content = "", seenThinking = false, seenAnswer = false, finish, completed = false;
   while (true) {
     const { value, done } = await reader.read();
     pending += decoder.decode(value, { stream: !done });
     const lines = pending.split("\n"); pending = lines.pop();
+    if (done && pending.trim()) { lines.push(pending); pending = ""; }
     for (const line of lines) {
       if (!line.startsWith("data:")) continue;
       const raw = line.slice(5).trim();
-      if (!raw || raw === "[DONE]") continue;
+      if (raw === "[DONE]") { completed = true; continue; }
+      if (!raw) continue;
       const event = JSON.parse(raw);
       if (event.error) throw new Error("provider-stream-error");
       const choice = event.choices?.[0], delta = choice?.delta;
@@ -141,6 +153,7 @@ async function readCompletion(response, onProgress) {
     if (done) break;
   }
   if (finish === "length") throw new Error("truncated");
+  if (!finish && !completed) throw new Error("interrupted");
   return content;
 }
 
@@ -207,7 +220,7 @@ export async function generateNarrative(snapshot, signal, onFailure = () => {}, 
 依据 validatedPlan 的思考结论撰写，从候选中选择有实质内容的图表：${questionOnly ? "问题专题写一至两个章节" : "整体报告写三至五个章节（候选不足时覆盖全部候选）"}，每个采用的编号只对应一个章节，无须覆盖所有候选，不再新增图表。findings 写三至四条，通过 chartIds 标明相关图表；通用的数据限制或方法说明可用空数组，不要强行关联无关图表。nextSteps 三至四条。每章给出实质性解读，不复述轴标题。只使用 validatedPlan.chartIds 中的图表编号，不要输出 evidence 等统计编号字段，程序会将该图的核算证据绑定到章节。正文用定性描述，不书写阿拉伯数字，数值交由程序排版；不要自行计算倍数或百分比。不要在正文中给条目加数字序号。章节名称不含序号。` },
           { role: "user", content: JSON.stringify({
             revision: attempt ? { instruction: "上一版未通过证据或格式校验。根据下面的具体问题修正；严格使用给定编号，正文不要写未经核验的数字或百分比，保留完整章节结构。", issues: validationFeedback } : undefined,
-            ...material, facts: undefined, validatedPlan: writerPlan,
+            ...material, facts: snapshot.facts, validatedPlan: writerPlan,
             charts: validatedPlan.chartIds.map((sourceId, index) => {
               const c = material.charts.find(chart => chart.id === sourceId);
               return { ...c, id: writerIds[index],
@@ -249,6 +262,7 @@ export async function generateNarrative(snapshot, signal, onFailure = () => {}, 
     const failureCode = error.message === "provider-402" ? "quota"
       : error.message === "provider-429" ? "rate_limit"
       : ["provider-401", "provider-403"].includes(error.message) ? "authentication"
+      : error.message === "interrupted" ? "interrupted"
       : error.message === "truncated" ? "truncated"
       : error.message === "ungrounded prose" ? "evidence"
       : ["ZodError", "SyntaxError"].includes(error.name) ? "format" : "provider";

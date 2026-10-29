@@ -33,8 +33,8 @@ function PdfPreview({ bytes, onReady }) {
       task;
     (async () => {
       try {
-        const lib = await import("pdfjs-dist/build/pdf.mjs");
-        const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+        const lib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+        const worker = await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url");
         lib.GlobalWorkerOptions.workerSrc = worker.default;
         task = lib.getDocument({ data: bytes.slice() });
         const doc = await task.promise;
@@ -43,7 +43,8 @@ function PdfPreview({ bytes, onReady }) {
           return;
         }
         setPdf(doc);
-      } catch {
+      } catch (e) {
+        console.error("PDF preview initialization", e);
         if (!stopped) setError("PDF 预览加载失败，仍可直接下载报告查看。");
       }
     })();

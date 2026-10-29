@@ -178,7 +178,7 @@ export default function App() {
   useEffect(() => {
     const box = chatEnd.current?.parentElement;
     if (box) box.scrollTop = box.scrollHeight;
-  }, [messages, busy, page]);
+  }, [messages, busy, page, agentStatus, agentSteps]);
   function navigate(target) {
     if (location.pathname !== target) history.pushState(null, "", target);
     setPage(target);

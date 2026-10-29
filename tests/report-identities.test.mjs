@@ -21,3 +21,11 @@ test("known households outside the current filter are identities, not invented s
   assert.deepEqual(narrative.unsupportedNumbers(question, "结果平均值约4300kWh。"), []);
   assert.ok(narrative.unsupportedNumbers(question, "结果最高值为4300kWh。").length);
 });
+
+test('Chinese date labels are validated as complete dates, not invented statistics', () => {
+ const s={title:'活动',facts:{},rows:[{name:'2026-01-22',value:97}],charts:[],quality:{metrics:[]},view:{filters:[]},metric:{unit:'人'}};
+ assert.deepEqual(narrative.unsupportedNumbers(s,'峰值发生在2026年1月22日。'),[]);
+ assert.deepEqual(narrative.unsupportedNumbers(s,'峰值发生在1月22日。'),[]);
+ assert.ok(narrative.unsupportedNumbers(s,'总人数22人。').length);
+ assert.ok(narrative.unsupportedNumbers(s,'峰值发生在1月23日。').length);
+});
