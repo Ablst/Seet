@@ -28,7 +28,15 @@ function Run-Tracked($arguments, $label) {
  $stdout = Join-Path $folder 'stdout.log'
  $stderr = Join-Path $folder 'stderr.log'
  $command = (Get-Command npm.cmd).Source
- $process = Start-Process -FilePath $env:ComSpec -ArgumentList ('/d /s /c ""' + $command + '" ' + $arguments + '"') -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+ # Own the process handle: Windows PowerShell 5.1 Start-Process -PassThru
+ # can lose ExitCode after the redirected child terminates.
+ $process = New-Object System.Diagnostics.Process
+ $process.StartInfo = New-Object System.Diagnostics.ProcessStartInfo
+ $process.StartInfo.FileName = $env:ComSpec
+ $process.StartInfo.Arguments = '/d /s /c ""' + $command + '" ' + $arguments + ' 1>"' + $stdout + '" 2>"' + $stderr + '""'
+ $process.StartInfo.UseShellExecute = $false
+ $process.StartInfo.CreateNoWindow = $true
+ [void]$process.Start()
  $offsets = @{ $stdout = 0; $stderr = 0 }
  $clock = [Diagnostics.Stopwatch]::StartNew()
  $lastPulse = -5
@@ -49,7 +57,10 @@ function Run-Tracked($arguments, $label) {
   $process.Refresh()
  }
  $process.WaitForExit()
- if ($process.ExitCode -ne 0) { throw ($label + '失败，退出码 ' + $process.ExitCode + '。详细日志：' + $folder) }
+ $exitCode = $process.ExitCode
+ $process.Dispose()
+ if ($null -eq $exitCode) { throw ('无法读取进程退出状态。详细日志：' + $folder) }
+ if ($exitCode -ne 0) { throw ($label + '失败，退出码 ' + $exitCode + '。详细日志：' + $folder) }
  Write-Host ('    完成，用时 ' + [int]$clock.Elapsed.TotalSeconds + ' 秒') -ForegroundColor Green
 }
 Set-Location (Split-Path $PSScriptRoot -Parent)
