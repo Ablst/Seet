@@ -14,6 +14,8 @@ import {
   LockKeyhole,
 } from "lucide-react";
 import { apiRequest } from "./api.mjs";
+import { LoginShell } from "./Experience.jsx";
+import { captureLoginArrival } from "./loginArrival.js";
 
 export function HelpPage({ navigate }) {
   return (
@@ -108,7 +110,9 @@ export function HelpPage({ navigate }) {
             <Check size={22} />
             <h2>核对依据，保存结果</h2>
             <p>
-              “数据表”中可以修正数值、导出 CSV；“分析报告”由 MiMo 结合本次对话深度生成，点击生成后可查看进度，再预览并下载多页 PDF。预览支持适宽、整页和缩放，右下角可翻页。空白代表缺失，0
+              “数据表”中可以修正数值、导出 CSV；“分析报告”由 MiMo
+              结合本次对话深度生成，点击生成后可查看进度，再预览并下载多页
+              PDF。预览支持适宽、整页和缩放，右下角可翻页。空白代表缺失，0
               会参与计算。合计与平均值由程序计算，重名分类按独立记录处理。
             </p>
             <p>
@@ -149,8 +153,9 @@ export function LoginPage({ navigate, onLogin, user }) {
         "/api/auth/" + (register ? "register" : "login"),
         { username: username.trim(), password },
       );
+      captureLoginArrival();
       onLogin(result.user);
-      navigate("/");
+      navigate("/home");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -158,161 +163,129 @@ export function LoginPage({ navigate, onLogin, user }) {
     }
   }
   return (
-    <main className="login-page subpage">
-      <section className="login-story">
-        <h1>
-          数据的下一步，
-          <br />
-          是你的新发现。
-        </h1>
-        <p>
-          用自然语言整理零散数字，
-          <br />
-          让图表呈现值得关注的细节。
-        </p>
-        <div className="login-illustration" aria-hidden="true">
-          <div className="illustration-label">
-            <span>一份数据，多一种看法</span>
-            <Sparkles size={18} />
-          </div>
-          <div className="illustration-bars">
-            {[38, 62, 47, 80, 68, 95, 74].map((h, i) => (
-              <i style={{ height: `${h}%` }} key={i} />
-            ))}
-          </div>
-          <div className="illustration-foot">
-            录入 <span /> 核对 <span /> 分析
-          </div>
-        </div>
-        <span className="story-foot">每个数字，都值得看清楚。</span>
-      </section>
-      <section className="login-form-area">
-        <button className="text-button back-link" onClick={() => navigate("/")}>
-          <ArrowLeft size={16} />
-          返回工作台
-        </button>
-        <div className="login-form-wrap">
-          {user ? (
-            <>
-              <div className="login-symbol">
-                <UserRound size={24} />
-              </div>
-              <h2>你好，{user.username}</h2>
-              <p className="login-description">你已登录当前工作台。</p>
+    <LoginShell navigate={navigate}>
+      <div className="login-form-wrap">
+        {user ? (
+          <>
+            <div className="login-symbol">
+              <UserRound size={24} />
+            </div>
+            <h2>你好，{user.username}</h2>
+            <p className="login-description">你的账号已就绪，继续探索见数。</p>
+            <button
+              className="primary-button login-submit"
+              onClick={() => navigate("/home")}
+            >
+              前往主页
+              <ArrowRight size={17} />
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="login-symbol">
+              <Sparkles size={24} />
+            </div>
+            <h2>{register ? "创建你的账号" : "欢迎回到见数"}</h2>
+            <p className="login-description">
+              {register
+                ? "注册后，即可使用你的个人身份登录。"
+                : "登录账号，开始一次新的数据发现。"}
+            </p>
+            <div className="auth-tabs">
               <button
-                className="primary-button login-submit"
-                onClick={() => navigate("/")}
+                type="button"
+                className={!register ? "selected" : ""}
+                aria-pressed={!register}
+                onClick={() => {
+                  setRegister(false);
+                  setError("");
+                }}
               >
-                开始分析
-                <ArrowRight size={17} />
+                登录
               </button>
-            </>
-          ) : (
-            <>
-              <div className="login-symbol">
-                <Sparkles size={24} />
+              <button
+                type="button"
+                className={register ? "selected" : ""}
+                aria-pressed={register}
+                onClick={() => {
+                  setRegister(true);
+                  setError("");
+                }}
+              >
+                注册
+              </button>
+            </div>
+            <form onSubmit={submit}>
+              <label className="auth-label" htmlFor="username">
+                用户名
+              </label>
+              <div className="auth-input">
+                <UserRound size={17} />
+                <input
+                  id="username"
+                  name="username"
+                  spellCheck={false}
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  maxLength={24}
+                  minLength={3}
+                  required
+                  placeholder="输入用户名"
+                />
               </div>
-              <h2>{register ? "创建你的账号" : "欢迎回到见数"}</h2>
-              <p className="login-description">
-                {register
-                  ? "注册后，即可使用你的个人身份登录。"
-                  : "登录账号，开始一次新的数据发现。"}
-              </p>
-              <div className="auth-tabs">
+              <label className="auth-label" htmlFor="password">
+                密码
+              </label>
+              <div className="auth-input">
+                <LockKeyhole size={17} />
+                <input
+                  id="password"
+                  name="password"
+                  type={visible ? "text" : "password"}
+                  autoComplete={register ? "new-password" : "current-password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={register ? 8 : 1}
+                  maxLength={128}
+                  required
+                  placeholder={register ? "设置至少 8 位密码" : "输入密码"}
+                />
                 <button
                   type="button"
-                  className={!register ? "selected" : ""}
-                  aria-pressed={!register}
-                  onClick={() => {
-                    setRegister(false);
-                    setError("");
-                  }}
+                  className="icon-button"
+                  aria-label={visible ? "隐藏密码" : "显示密码"}
+                  onClick={() => setVisible(!visible)}
                 >
-                  登录
-                </button>
-                <button
-                  type="button"
-                  className={register ? "selected" : ""}
-                  aria-pressed={register}
-                  onClick={() => {
-                    setRegister(true);
-                    setError("");
-                  }}
-                >
-                  注册
+                  {visible ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <form onSubmit={submit}>
-                <label className="auth-label" htmlFor="username">
-                  用户名
-                </label>
-                <div className="auth-input">
-                  <UserRound size={17} />
-                  <input
-                    id="username"
-                    autoComplete="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    maxLength={24}
-                    minLength={3}
-                    required
-                    placeholder="输入用户名"
-                  />
-                </div>
-                <label className="auth-label" htmlFor="password">
-                  密码
-                </label>
-                <div className="auth-input">
-                  <LockKeyhole size={17} />
-                  <input
-                    id="password"
-                    type={visible ? "text" : "password"}
-                    autoComplete={
-                      register ? "new-password" : "current-password"
-                    }
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    minLength={register ? 8 : 1}
-                    maxLength={128}
-                    required
-                    placeholder={register ? "设置至少 8 位密码" : "输入密码"}
-                  />
-                  <button
-                    type="button"
-                    className="icon-button"
-                    aria-label={visible ? "隐藏密码" : "显示密码"}
-                    onClick={() => setVisible(!visible)}
-                  >
-                    {visible ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-                {register && (
-                  <p className="auth-hint">
-                    用户名 3–24 位，支持文字、数字、下划线和短横线。
-                  </p>
-                )}
-                {error && (
-                  <p className="auth-error" role="alert">
-                    {error}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  className="primary-button login-submit"
-                  disabled={busy}
-                >
-                  {busy ? <LoaderCircle size={18} className="spin" /> : null}
-                  {busy ? "正在处理…" : register ? "注册并登录" : "登录"}
-                  {!busy && <ArrowRight size={17} />}
-                </button>
-              </form>
-              <p className="auth-scope">
-                登录后，你的对话、表格和图表会保存到专属分析记录。
-              </p>
-            </>
-          )}
-        </div>
-      </section>
-    </main>
+              {register && (
+                <p className="auth-hint">
+                  用户名 3–24 位，支持文字、数字、下划线和短横线。
+                </p>
+              )}
+              {error && (
+                <p className="auth-error" role="alert">
+                  {error}
+                </p>
+              )}
+              <button
+                type="submit"
+                className="primary-button login-submit"
+                disabled={busy}
+              >
+                {busy ? <LoaderCircle size={18} className="spin" /> : null}
+                {busy ? "正在处理…" : register ? "注册并登录" : "登录"}
+                {!busy && <ArrowRight size={17} />}
+              </button>
+            </form>
+            <p className="auth-scope">
+              登录后，你的对话、表格和图表会保存到专属分析记录。
+            </p>
+          </>
+        )}
+      </div>
+    </LoginShell>
   );
 }

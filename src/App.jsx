@@ -49,6 +49,8 @@ import {
   aggregationFor,
 } from "./analysis.mjs";
 import { HelpPage, LoginPage } from "./pages.jsx";
+import { HomePage } from "./Experience.jsx";
+import { usePageMotion } from "./usePageMotion.jsx";
 import { useRecords, emptyWorkspace } from "./useRecords.jsx";
 import { useVoiceInput } from "./useVoiceInput.jsx";
 import AnalysisHistory from "./components/AnalysisHistory.jsx";
@@ -107,6 +109,7 @@ export default function App() {
     [sidebar, setSidebar] = useState(true);
   const [page, setPage] = useState(location.pathname),
     [user, setUser] = useState(null);
+  const leaveHome = usePageMotion(page);
   const [authPending, setAuthPending] = useState(true);
   const [previous, setPrevious] = useState(null);
   const [aiState, setAIState] = useState("checking"),
@@ -167,7 +170,9 @@ export default function App() {
           ? "使用说明 · 见数"
           : page === "/login"
             ? "账号登录 · 见数"
-            : "见数 — AI 数据分析工作台";
+            : page === "/home"
+              ? "见数 Seet — 让数据，说得更清楚"
+              : "见数 — AI 数据分析工作台";
   }, [page]);
   useEffect(() => {
     if (page !== "/") return;
@@ -180,9 +185,13 @@ export default function App() {
     if (box) box.scrollTop = box.scrollHeight;
   }, [messages, busy, page, agentStatus, agentSteps]);
   function navigate(target) {
-    if (location.pathname !== target) history.pushState(null, "", target);
-    setPage(target);
-    window.scrollTo(0, 0);
+    const commit = () => {
+      if (location.pathname !== target) history.pushState(null, "", target);
+      setPage(target);
+      window.scrollTo(0, 0);
+    };
+    if (page === "/home" && target !== page) leaveHome(commit);
+    else commit();
   }
   function focusAI() {
     navigate("/");
@@ -529,12 +538,47 @@ export default function App() {
         : `${dataset.source}（已编辑）`,
     });
   }
+  // 主页与工作台共用账户操作，保存记录与退出流程保持一致。
+  const accountControls = user ? (
+    <div className="account-area">
+      <button
+        className="account-button"
+        title={user.username}
+        aria-label={`账户：${user.username}`}
+        onClick={() => navigate("/login")}
+      >
+        <span className="avatar">{user.username.slice(0, 1)}</span>
+        <span className="account-name">{user.username}</span>
+      </button>
+      <button
+        className="logout-button"
+        onClick={async () => {
+          try {
+            await records.saveNow();
+            await apiRequest("/api/auth/logout", {});
+            restoreWorkspace(emptyWorkspace());
+            setUser(null);
+            navigate("/login");
+            setNotice("已退出登录");
+          } catch (e) {
+            setNotice(e.message);
+          }
+        }}
+      >
+        退出
+      </button>
+    </div>
+  ) : (
+    <button className="login-link" onClick={() => navigate("/login")}>
+      登录
+    </button>
+  );
   const header = (
     <header className="topbar">
       <button
         className="brand-home"
         aria-label="见数首页"
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/home")}
       >
         <Logo />
       </button>
@@ -542,6 +586,7 @@ export default function App() {
       <span className="workspace-name">个人工作台</span>
       {user && (
         <nav className="topnav" aria-label="主要导航">
+          <button onClick={() => navigate("/home")}>主页</button>
           <button
             className={page === "/" && !examples ? "nav-active" : ""}
             onClick={() => {
@@ -577,39 +622,7 @@ export default function App() {
           <BookOpen size={16} />
           使用说明
         </button>
-        {user ? (
-          <div className="account-area">
-            <button
-              className="account-button"
-              title={user.username}
-              onClick={() => navigate("/login")}
-            >
-              <span className="avatar">{user.username.slice(0, 1)}</span>
-              <span className="account-name">{user.username}</span>
-            </button>
-            <button
-              className="logout-button"
-              onClick={async () => {
-                try {
-                  await records.saveNow();
-                  await apiRequest("/api/auth/logout", {});
-                  restoreWorkspace(emptyWorkspace());
-                  setUser(null);
-                  navigate("/login");
-                  setNotice("已退出登录");
-                } catch (e) {
-                  setNotice(e.message);
-                }
-              }}
-            >
-              退出
-            </button>
-          </div>
-        ) : (
-          <button className="login-link" onClick={() => navigate("/login")}>
-            登录
-          </button>
-        )}
+        {accountControls}
       </div>
     </header>
   );
@@ -622,10 +635,13 @@ export default function App() {
     );
   if (!user)
     return (
-      <div className="app-frame">
-        {header}
+      <div className="experience-frame">
         <LoginPage navigate={navigate} user={null} onLogin={setUser} />
       </div>
+    );
+  if (page === "/home")
+    return (
+      <HomePage navigate={navigate} user={user} accountControls={accountControls} />
     );
   if (!records.ready)
     return (
@@ -668,8 +684,7 @@ export default function App() {
     );
   if (page === "/login")
     return (
-      <div className="app-frame">
-        {header}
+      <div className="experience-frame">
         <LoginPage navigate={navigate} user={user} onLogin={setUser} />
       </div>
     );
